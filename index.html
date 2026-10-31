@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#1565C0">
+<title>Controle de Manutenção</title>
+
+<!-- App instalável (PWA) -->
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Manutenção">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="application-name" content="Manutenção">
+<meta name="format-detection" content="telephone=no">
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+<!-- ============ LOGIN ============ -->
+<div class="login" id="login">
+    <div class="login-wrap">
+
+        <div class="login-marca">
+            <div class="login-logo" id="loginLogo"><i class="fa-solid fa-screwdriver-wrench"></i></div>
+            <h1 id="loginEmpresa">Controle de Manutenção</h1>
+            <p>Ordens de serviço</p>
+        </div>
+
+        <!-- Passo 1: escolher o usuário -->
+        <div class="login-card" id="loginEscolha">
+            <div class="login-busca">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="search" id="loginBusca" placeholder="Buscar seu nome" autocomplete="off" oninput="renderLogin()">
+            </div>
+            <div class="login-lista" id="loginUsers"></div>
+        </div>
+
+        <!-- Passo 2: PIN -->
+        <div class="login-card" id="loginPin" style="display:none">
+            <button class="login-trocar" onclick="voltarLogin()"><i class="fa-solid fa-arrow-left"></i> Trocar usuário</button>
+            <div class="login-quem">
+                <div id="loginAv"></div>
+                <b id="loginNome"></b>
+                <small id="loginFuncao"></small>
+            </div>
+            <label class="login-label" for="pinInput">Digite seu PIN</label>
+            <input type="password" id="pinInput" inputmode="numeric" maxlength="4" placeholder="••••" autocomplete="off">
+            <div class="login-erro" id="loginErro">PIN incorreto. Tente novamente.</div>
+            <button class="btn-pri cheio" onclick="entrar()"><i class="fa-solid fa-right-to-bracket"></i> Entrar</button>
+        </div>
+
+    </div>
+</div>
+
+<!-- ============ CABEÇALHO ============ -->
+<header class="topo" id="topo">
+    <div class="topo-linha">
+        <button class="btn-voltar" onclick="ir('os')" aria-label="Voltar">
+            <i class="fa-solid fa-arrow-left"></i>
+        </button>
+        <img class="topo-logo" id="topoLogo" alt="Logo da empresa" style="display:none">
+        <div class="topo-textos">
+            <h1 id="topoTitulo">Bom dia</h1>
+            <p id="topoSub">Controle de Manutenção</p>
+        </div>
+        <button class="sino" id="sino" onclick="abrirAlertas()" aria-label="Avisos">
+            <i class="fa-solid fa-bell"></i>
+            <span class="sino-badge" id="sinoBadge">0</span>
+        </button>
+        <div class="avatar-mini" id="topoAvatar" onclick="ir('perfil')">A</div>
+    </div>
+</header>
+
+<main>
+
+<!-- ============ INÍCIO ============ -->
+<section class="view" id="v-inicio">
+    <div class="resumo" id="resumo"></div>
+    <div class="cards" id="cards"></div>
+
+    <div class="bloco" id="alertaBanner" style="padding-bottom:0"></div>
+    <div class="bloco" id="blocoDestaque"></div>
+    <div class="bloco" id="blocoCampo"></div>
+
+    <div class="bloco">
+        <div class="bloco-topo">
+            <h2 id="tituloRecentes">Últimas ordens</h2>
+            <a onclick="filtrarOS('todas')">Ver todas</a>
+        </div>
+        <div id="listaRecentes"></div>
+    </div>
+</section>
+
+<!-- ============ ORDENS ============ -->
+<section class="view" id="v-os">
+    <div class="busca">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input type="search" id="busca" placeholder="Buscar por equipamento, nº, técnico..." oninput="renderOS()">
+    </div>
+    <div class="chips" id="chips"></div>
+    <div class="bloco" id="listaOS"></div>
+</section>
+
+<!-- ============ NOVA / EDITAR OS ============ -->
+<section class="view" id="v-nova">
+    <form id="formOS" onsubmit="salvarOS(event)" novalidate>
+        <input type="hidden" id="fId">
+        <input type="hidden" id="fPrior" value="media">
+
+        <div class="form-card">
+            <div class="form-titulo"><i class="fa-solid fa-gear"></i> Identificação</div>
+
+            <label class="campo" id="cTitulo">
+                <span>Equipamento / Título *</span>
+                <input type="text" id="fTitulo" maxlength="80" placeholder="Ex: Motor da Esteira 01">
+                <em class="erro">Informe o equipamento ou título.</em>
+            </label>
+
+            <div class="linha2">
+                <label class="campo"><span>Setor</span><select id="fSetor" onchange="aoMudarSetor()"></select></label>
+                <label class="campo"><span>Tipo</span><select id="fTipo"></select></label>
+            </div>
+
+            <div class="novo-setor" id="novoSetorBox">
+                <input type="text" id="novoSetorInput" maxlength="30" placeholder="Nome do novo setor">
+                <button type="button" class="btn-pri" onclick="criarSetor()">Adicionar</button>
+            </div>
+        </div>
+
+        <!-- Somente líder -->
+        <div class="form-card so-admin">
+            <div class="form-titulo"><i class="fa-solid fa-user-check"></i> Designar para</div>
+            <label class="campo" id="cTec">
+                <span>Técnico responsável *</span>
+                <select id="fTec"></select>
+                <em class="erro">Escolha o técnico que vai executar.</em>
+            </label>
+            <p class="dica">Somente o técnico escolhido poderá aceitar esta OS. Os demais apenas visualizam.</p>
+        </div>
+
+        <div class="form-card so-admin">
+            <div class="form-titulo"><i class="fa-solid fa-flag"></i> Prioridade</div>
+            <div class="seg" id="segPrior">
+                <button type="button" data-p="baixa" class="p-baixa">Baixa</button>
+                <button type="button" data-p="media" class="p-media">Média</button>
+                <button type="button" data-p="alta" class="p-alta">Alta</button>
+                <button type="button" data-p="urgente" class="p-urgente">Urgente</button>
+            </div>
+        </div>
+
+        <div class="form-card">
+            <div class="form-titulo"><i class="fa-solid fa-align-left"></i> Detalhes</div>
+
+            <label class="campo">
+                <span id="lblData">Data prevista</span>
+                <input type="date" id="fData">
+            </label>
+
+            <label class="campo" id="cDesc">
+                <span id="lblDesc">Descrição</span>
+                <textarea id="fDesc" rows="4" maxlength="600" placeholder="Descreva..."></textarea>
+                <em class="erro">Descreva o serviço realizado.</em>
+            </label>
+        </div>
+
+        <!-- Somente técnico -->
+        <div class="form-card so-tec">
+            <div class="form-titulo"><i class="fa-solid fa-box-open"></i> Materiais utilizados (opcional)</div>
+            <p class="dica" style="margin:0 0 12px">Informe o que você retirou do almoxarifado: produto ou nº da caixa e a quantidade. Se não usou nenhuma peça, deixe em branco.</p>
+            <div id="itensBox_form"></div>
+        </div>
+
+        <div class="form-card so-tec">
+            <div class="form-titulo"><i class="fa-solid fa-camera"></i> Fotos do serviço (opcional)</div>
+            <div class="fotos-rot">Antes do serviço</div>
+            <div class="fotos" id="fotosAntesForm"></div>
+            <div class="fotos-rot">Depois do serviço</div>
+            <div class="fotos" id="fotosDepoisForm"></div>
+        </div>
+
+        <div class="form-acoes">
+            <button type="button" class="btn-sec" onclick="ir('os')">Cancelar</button>
+            <button type="submit" class="btn-pri" id="btnSalvar"><i class="fa-solid fa-check"></i> Salvar</button>
+        </div>
+    </form>
+</section>
+
+<!-- ============ CALENDÁRIO ============ -->
+<section class="view" id="v-calendario">
+    <div class="cal-card">
+        <div class="cal-cab">
+            <div class="cal-titulo">
+                <strong id="calMesNome"></strong>
+                <small id="calAno"></small>
+            </div>
+            <div class="cal-ctrl">
+                <button class="pill" onclick="irHoje()">Hoje</button>
+                <button class="cal-nav" onclick="mudaMes(-1)" aria-label="Mês anterior"><i class="fa-solid fa-chevron-left"></i></button>
+                <button class="cal-nav" onclick="mudaMes(1)" aria-label="Próximo mês"><i class="fa-solid fa-chevron-right"></i></button>
+            </div>
+        </div>
+
+        <div class="cal-acoes" id="calAcoes"></div>
+
+        <div class="cal-semana">
+            <span>Dom</span><span>Seg</span><span>Ter</span><span>Qua</span><span>Qui</span><span>Sex</span><span>Sáb</span>
+        </div>
+        <div class="cal-grade" id="calGrade"></div>
+
+        <div class="cal-rodape">
+            <div class="cal-legenda">
+                <span><i class="pt azul"></i>OS aberta</span>
+                <span><i class="pt verm"></i>Atrasada</span>
+                <span><i class="pt verde"></i>Finalizada</span>
+                <span><i class="pt roxo"></i>Evento</span>
+            </div>
+            <small id="calResumo"></small>
+        </div>
+    </div>
+
+    <div class="cal-dia">
+        <div class="dia-topo">
+            <h2 id="calDiaTitulo">Dia</h2>
+            <small id="calDiaSub"></small>
+        </div>
+        <div id="calLista"></div>
+    </div>
+</section>
+
+<!-- ============ PERFIL ============ -->
+<section class="view" id="v-perfil">
+    <div class="perfil-card">
+        <div class="avatar-grande" id="perfilAvatar">A</div>
+        <h2 id="perfilNome"></h2>
+        <p id="perfilCargo"></p>
+        <small id="perfilTel"></small>
+    </div>
+
+    <div class="perfil-stats" id="perfilStats"></div>
+
+    <div class="form-card">
+        <button class="btn-pri cheio" style="margin-top:0" onclick="abrirEditor(sessao)"><i class="fa-solid fa-user-pen"></i> Editar meu perfil</button>
+    </div>
+
+    <div class="form-card so-admin">
+        <div class="form-titulo"><i class="fa-solid fa-users-gear"></i> Equipe de técnicos</div>
+        <div id="listaEquipe"></div>
+
+        <div class="eq-novo">
+            <label class="campo"><span>Nome</span><input type="text" id="eqNome" maxlength="30" placeholder="Novo técnico"></label>
+            <div class="linha2">
+                <label class="campo"><span>Função</span><input type="text" id="eqFuncao" maxlength="40" placeholder="Ex: Eletricista"></label>
+                <label class="campo"><span>PIN (4 números)</span><input type="password" id="eqPin" inputmode="numeric" maxlength="4" placeholder="••••"></label>
+            </div>
+            <button class="btn-sec cheio" onclick="addTecnico()"><i class="fa-solid fa-user-plus"></i> Adicionar técnico</button>
+        </div>
+    </div>
+
+    <div class="form-card so-admin">
+        <div class="form-titulo"><i class="fa-solid fa-building"></i> Empresa</div>
+        <div class="emp-logo-box">
+            <div class="emp-logo" id="empLogoPrev"></div>
+            <div class="ed-foto-btns">
+                <button type="button" onclick="pickLogo()"><i class="fa-solid fa-image"></i>Alterar logo</button>
+                <button type="button" class="rm" onclick="removerLogo()"><i class="fa-solid fa-trash"></i>Remover</button>
+            </div>
+        </div>
+        <label class="campo"><span>Nome da empresa</span><input type="text" id="empNome" maxlength="40" placeholder="Ex: Indústria Silva"></label>
+        <p class="dica" style="margin:0 0 12px">A logo aparece na tela de login e no topo do aplicativo.</p>
+        <button class="btn-pri cheio" style="margin-top:0" onclick="salvarEmpresa()"><i class="fa-solid fa-check"></i> Salvar empresa</button>
+    </div>
+
+    <div class="form-card so-admin">
+        <div class="form-titulo"><i class="fa-solid fa-file-pdf"></i> Relatórios</div>
+        <p class="dica" style="margin:0 0 12px">Gere relatórios para imprimir ou salvar em PDF: geral, por técnico, atrasadas, concluídas e materiais.</p>
+        <button class="btn-pri cheio" style="margin-top:0" onclick="abrirRelatorios()"><i class="fa-solid fa-print"></i> Gerar relatório</button>
+    </div>
+
+    <div class="form-card so-admin">
+        <div class="form-titulo"><i class="fa-solid fa-location-dot"></i> Setores</div>
+        <div class="setores" id="listaSetores"></div>
+        <div class="linha-add">
+            <input type="text" id="setNovo" maxlength="30" placeholder="Novo setor">
+            <button class="btn-pri" onclick="addSetorPerfil()">Adicionar</button>
+        </div>
+    </div>
+
+    <div class="form-card so-admin">
+        <div class="form-titulo"><i class="fa-solid fa-database"></i> Dados</div>
+        <button class="btn-sec cheio" onclick="exportar()"><i class="fa-solid fa-download"></i> Exportar backup (.json)</button>
+        <button class="btn-perigo cheio" onclick="limparTudo()"><i class="fa-solid fa-trash"></i> Apagar todas as OS</button>
+    </div>
+
+    <div class="form-card" id="pwaCard" style="display:none">
+        <div class="form-titulo"><i class="fa-solid fa-mobile-screen-button"></i> Aplicativo</div>
+        <div id="pwaCorpo"></div>
+    </div>
+
+    <div class="form-card">
+        <button class="btn-perigo cheio" style="margin-top:0" onclick="sair()"><i class="fa-solid fa-right-from-bracket"></i> Sair</button>
+    </div>
+</section>
+
+</main>
+
+<!-- ============ FOLHA INFERIOR (OS, evento, avisos, perfil) ============ -->
+<div class="overlay" id="overlay" onclick="fecharOS()"></div>
+<div class="sheet" id="sheet"></div>
+
+<!-- ============ VISUALIZADOR DE FOTO ============ -->
+<div class="viewer" id="viewer" onclick="fecharFoto()">
+    <button class="viewer-x" aria-label="Fechar"><i class="fa-solid fa-xmark"></i></button>
+    <img id="viewerImg" alt="Foto">
+</div>
+
+<input type="file" id="fileFoto" accept="image/*" multiple style="display:none">
+<input type="file" id="fileAvatar" accept="image/*" style="display:none">
+<input type="file" id="fileLogo" accept="image/*" style="display:none">
+
+<div class="toast" id="toast"></div>
+
+<!-- ============ MENU INFERIOR ============ -->
+<nav class="bottom-nav" id="nav">
+    <button data-view="inicio" onclick="ir('inicio')">
+        <i class="fa-solid fa-house"></i><span>Início</span>
+    </button>
+    <button data-view="os" onclick="ir('os')">
+        <i class="fa-solid fa-clipboard-list"></i><span>OS</span>
+    </button>
+    <button class="add" onclick="novaOS()" aria-label="Nova OS">
+        <i class="fa-solid fa-plus"></i>
+    </button>
+    <button data-view="calendario" onclick="ir('calendario')">
+        <i class="fa-solid fa-calendar-days"></i><span>Calendário</span>
+    </button>
+    <button data-view="perfil" onclick="ir('perfil')">
+        <i class="fa-solid fa-user"></i><span>Perfil</span>
+    </button>
+</nav>
+
+<datalist id="dlItens"></datalist>
+
+<!-- ============ RELATÓRIO (prévia / impressão) ============ -->
+<div class="rel-tela" id="relTela">
+    <div class="rel-barra">
+        <button class="btn-sec" onclick="fecharRelatorio()"><i class="fa-solid fa-arrow-left"></i> Voltar</button>
+        <span class="rel-barra-esp"></span>
+        <button class="btn-sec" id="relCsv" onclick="baixarCSV()" style="display:none"><i class="fa-solid fa-file-csv"></i> Planilha</button>
+        <button class="btn-pri" onclick="imprimirRelatorio()"><i class="fa-solid fa-print"></i> Imprimir / Salvar PDF</button>
+    </div>
+    <div class="rel-folha" id="relFolha"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase.js"></script>
+<script src="script.js"></script>
+<script src="pwa.js"></script>
+</body>
+</html>
